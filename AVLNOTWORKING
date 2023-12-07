@@ -1,0 +1,282 @@
+#include <iostream>
+
+using namespace std;
+
+//~***~ DRZEWA AVL ~*****~~
+
+struct AVL {
+    AVL* parent;
+    AVL* right;
+    AVL* left;
+    int val;
+    int balance;
+};
+
+void balance(AVL*& p);
+
+AVL* root = nullptr;
+
+AVL* find(AVL*& root, int x) {
+    if (root == nullptr || root->val == x) {
+        return root;
+    }
+    if (root->val > x) {
+        return find(root->left, x); // Zwracamy wynik rekurencyjnego wywołania.
+    }
+    if (root->val < x) {
+        return find(root->right, x); // Zwracamy wynik rekurencyjnego wywołania.
+    }
+}
+
+void read(AVL*& root, bool isRoot = true) {
+    if (root == nullptr) {
+        return;
+    }
+    if (root != nullptr) {
+        cout << root->val << " - ";
+
+        if (isRoot) {
+            cout << "Jest on korzeniem. ";
+        }
+        if (root->left) {
+            cout << "Ma lewego syna " << root->left->val << ". ";
+        }
+        if (root->right) {
+            cout << "Ma prawego syna " << root->right->val << ". ";
+        }
+        if (root->left == nullptr && root->right == nullptr) {
+            cout << "Jest on lisciem.";
+        }
+        cout << " Jego wspolczynnik balansu to: " << root->balance;
+        cout << endl;
+        read(root->left, false);
+        read(root->right, false);
+    }
+}
+
+int getHeight(AVL* node) {
+    if (node == nullptr) {
+        return 0;
+    }
+
+    int leftHeight = getHeight(node->left);
+    int rightHeight = getHeight(node->right);
+
+    return 1 + max(leftHeight, rightHeight);
+}
+
+void count_balance(AVL*& p) {
+    int counter = 0;
+    AVL* pp = p;
+    
+    while (pp != nullptr) {
+  
+        pp->balance = getHeight(pp->left) - getHeight(pp->right);
+        pp = pp->parent;
+    }
+}
+
+void setAVL(AVL*& root, int x, AVL* parent = nullptr) {
+    if (root == nullptr) {
+        AVL* p = new AVL;
+        p->val = x;
+        p->right = nullptr;
+        p->left = nullptr;
+        p->parent = parent;
+        p->balance = 0;
+        root = p;
+
+        count_balance(p);
+       balance(p);
+        /**/
+    }
+    else {
+   
+        if (x >= root->val) {
+            setAVL(root->right, x, root);
+        }
+        else {
+            setAVL(root->left, x, root);
+        }
+    }
+}
+
+void rotation_left(AVL*& root, AVL * & x) {
+    AVL* XX = x;
+
+    if (XX->parent == nullptr) {
+        return;
+    }
+
+    AVL* y = XX->parent;
+
+    // zastapienie x jako root lub parent
+
+    if (y->parent) {
+        if (y->parent->right == y) {
+            y->parent->right = XX;
+        }
+        else {
+            y->parent->left = XX;
+        }
+        XX->parent = y->parent;
+    }
+    else {
+        root = XX;
+    }
+
+    // prawe dziecko x jako lewe dziecko y
+
+    if (XX->right) {
+        y->left = XX->right;
+        XX->right->parent = y;
+        XX->right = nullptr;
+    }
+
+    // przepiecie y jako prawe dziecko x
+
+    y->parent = XX;
+    XX->right = y;
+    
+    return;
+}
+
+void rotation_right(AVL*& root, AVL*& x) {
+    AVL* XX = x;
+
+    if (XX->parent == nullptr) {
+        return;
+    }
+
+    AVL* y = XX->parent;
+
+    // zastapienie x jako root lub parent
+
+    if (y->parent) {
+        if (y->parent->right == y) {
+            y->parent->right = XX;
+        }
+        else {
+            y->parent->left = XX;
+        }
+        XX->parent = y->parent;
+    }
+    else {
+        root = XX;
+    }
+    
+    // lewe dziecko x jako prawe dziecko y
+
+    if (XX->left) {
+        y->right = XX->left;
+        XX->left->parent = y;
+        XX->left = nullptr;
+    }
+
+    // przepiecie y jako lewe dziecko x
+
+    y->parent = XX;
+    XX->left = y;
+    
+    return;
+}
+
+void rotation_right_left(AVL*& root, AVL*& x) {
+    rotation_right(root, x);
+    rotation_left(root, x);
+}
+
+void rotation_left_right(AVL*& root, AVL*& x) {
+    rotation_right(root, x);
+    rotation_left(root, x);
+}
+
+AVL* findinbalance(AVL*& root) {
+    if (root == nullptr) {
+        return nullptr;
+    }
+    if (root != nullptr) {
+        findinbalance(root->left);
+        findinbalance(root->right);
+        if (root->balance != 0 && root->balance != -1 && root->balance != 1) {
+            return root;
+        }
+
+    }
+}
+void balance(AVL*& p) {
+    if (p == nullptr) {
+        return;
+    }
+
+    // Left Heavy
+    if (p->balance > 1) {
+        // Left-Left Case
+        if (p->left && p->left->balance >= 0) {
+            rotation_right(root, p);
+        }
+        // Left-Right Case
+        else if (p->left && p->left->balance < 0) {
+            rotation_left_right(root, p);
+        }
+    }
+    // Right Heavy
+    else if (p->balance < -1) {
+        // Right-Right Case
+        if (p->right && p->right->balance <= 0) {
+            rotation_left(root, p);
+        }
+        // Right-Left Case
+        else if (p->right && p->right->balance > 0) {
+            rotation_right_left(root, p);
+        }
+    }
+
+    // Recursively balance parent nodes
+    balance(p->parent);
+}
+
+int main() {
+
+    /*
+    // TEST LL
+    setAVL(root, 15);
+    setAVL(root, 10);
+    setAVL(root, 20);
+    setAVL(root, 5);
+    setAVL(root, 12);
+    setAVL(root, 1);
+    setAVL(root, 6);
+    read(root);
+    rotation_left(root, );
+    cout << endl;
+    read(root);
+    */
+    /*
+    //TEST RR
+    setAVL(root, 10);
+    setAVL(root, 5);
+    setAVL(root, 25);
+    setAVL(root, 20);
+    setAVL(root, 35);
+    setAVL(root, 30);
+    setAVL(root, 40);
+    read(root);
+    AVL * x = find(root, 25);
+    rotation_right(root,x);
+    cout << endl;
+    read(root);
+    */
+
+    setAVL(root, 63);
+    read(root);
+    cout << endl;
+    setAVL(root, 9);
+    read(root);
+    cout << endl;
+    setAVL(root, 19);
+    read(root);
+    cout << endl;
+
+    return 0;
+}
